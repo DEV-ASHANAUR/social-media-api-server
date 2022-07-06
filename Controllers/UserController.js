@@ -1,4 +1,4 @@
-import UserModel from "../Modals/userModal.js";
+import UserModel from "../Models/userModel.js";
 import bcrypt from 'bcrypt';
 import {createError} from '../utils/error.js';
 
