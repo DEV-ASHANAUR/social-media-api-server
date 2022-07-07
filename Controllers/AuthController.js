@@ -1,24 +1,31 @@
 import UserModel from "../Models/userModel.js";
 import bcrypt from 'bcrypt';
 import {createError} from '../utils/error.js';
-
+import jwt from 'jsonwebtoken';
 //Reg user
 export const registerUser = async(req,res,next)=>{
-    const {username,password,firstname,lastname} = req.body;
-
+    
     const salt = await bcrypt.genSalt(10);
-    const hashedPass = await bcrypt.hash(password,salt);
+    const hashedPass = await bcrypt.hash(req.body.password,salt);
 
-    const newUser = new UserModel({
-        username,
-        password:hashedPass,
-        firstname,
-        lastname
-    });
+    req.body.password = hashedPass;
+
+    const newUser = new UserModel(req.body);
+
+    const {username} = req.body;
 
     try {
-        await newUser.save();
-        res.status(200).json(newUser);
+        // check the user is already have or not
+        const oldUser = await UserModel.findOne({username})
+        if(oldUser){
+            return next(createError(400,"User already exists"));
+        }
+        const user = await newUser.save();
+        const token = jwt.sign(
+            {username:user.username, id:user._id},
+            process.env.JWTKEY,{expiresIn:"1d"}
+        )
+        res.status(200).json({user,token});
     } catch (error) {
         next(error);
     }
@@ -31,10 +38,14 @@ export const loginUser = async(req,res,next)=>{
         const user = await UserModel.findOne({username:username});
         if(user){
             const validity = await bcrypt.compare(password,user.password)
-            if(validity){
-                res.status(200).json(user)
-            }else{
+            if(!validity){
                 return next(createError(400,"Wrong password or username"))
+            }else{
+                const token = jwt.sign(
+                    {username:user.username, id:user._id},
+                    process.env.JWTKEY,{expiresIn:"1d"}
+                )
+                res.status(200).json({user,token})
             }
         }else{
             return next(createError(400,"user does not exists"));
