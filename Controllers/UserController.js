@@ -1,6 +1,7 @@
 import UserModel from "../Models/userModel.js";
 import bcrypt from 'bcrypt';
 import {createError} from '../utils/error.js';
+import jwt from 'jsonwebtoken';
 
 //get user
 export const getUser = async(req,res,next)=>{
@@ -22,9 +23,9 @@ export const getUser = async(req,res,next)=>{
 //update user
 export const updateUser = async(req,res,next)=>{
     const id = req.params.id;
-    const {currentUserId, currentAdminStatus, password} = req.body;
-
-    if(id === currentUserId || currentAdminStatus){
+    const {_id, password} = req.body;
+    // console.log("id",_id);
+    if(id === _id){
         try {
             if(password){
                 const salt = await bcrypt.genSalt(10);
@@ -34,9 +35,12 @@ export const updateUser = async(req,res,next)=>{
             const user = await UserModel.findByIdAndUpdate(id,req.body,{
                 new:true
             });
-
-            res.status(200).json(user);
-
+            const token = jwt.sign(
+                {username:user.username, id:user._id},
+                process.env.JWTKEY,{expiresIn:"1d"}
+            )
+            // console.log({user, token})
+            res.status(200).json({user,token})
         } catch (error) {
             next(error);
         }
@@ -62,9 +66,9 @@ export const deleteUser = async(req,res,next)=>{
 //follow User
 export const followUser = async(req,res,next)=>{
     const id = req.params.id;
-    const {currentUserId} = req.body;
+    const {_id} = req.body;
 
-    if(id === currentUserId){
+    if(id === _id){
         return next(createError(403,"Action Forbidden"));
     }else{
         try {
@@ -86,9 +90,9 @@ export const followUser = async(req,res,next)=>{
 //follow User
 export const UnFollowUser = async(req,res,next)=>{
     const id = req.params.id;
-    const {currentUserId} = req.body;
+    const {_id} = req.body;
 
-    if(id === currentUserId){
+    if(id === _id){
         return next(createError(403,"Action Forbidden"));
     }else{
         try {
