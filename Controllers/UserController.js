@@ -3,6 +3,20 @@ import bcrypt from 'bcrypt';
 import {createError} from '../utils/error.js';
 import jwt from 'jsonwebtoken';
 
+//getAllUser
+export const getAllUser = async(req,res,next)=>{
+    try {
+        let users = await UserModel.find();
+        users = users.map((user)=>{
+            const {password, ...otherDetails} = user._doc;
+            return otherDetails;
+        })
+        res.status(200).json(users); 
+    } catch (error) {
+        next(error)
+    }
+}
+
 //get user
 export const getUser = async(req,res,next)=>{
     const id = req.params.id;
@@ -73,10 +87,10 @@ export const followUser = async(req,res,next)=>{
     }else{
         try {
             const followUser = await UserModel.findById(id);
-            const followingUser = await UserModel.findById(currentUserId);
+            const followingUser = await UserModel.findById(_id);
 
-            if(!followUser.followers.includes(currentUserId)){
-                await followUser.updateOne({$push:{followers:currentUserId}});
+            if(!followUser.followers.includes(_id)){
+                await followUser.updateOne({$push:{followers:_id}});
                 await followingUser.updateOne({$push:{following:id}});
                 res.status(200).json("User followed!");
             }else{
@@ -97,10 +111,10 @@ export const UnFollowUser = async(req,res,next)=>{
     }else{
         try {
             const followUser = await UserModel.findById(id);
-            const followingUser = await UserModel.findById(currentUserId);
+            const followingUser = await UserModel.findById(_id);
 
-            if(followUser.followers.includes(currentUserId)){
-                await followUser.updateOne({$pull:{followers:currentUserId}});
+            if(followUser.followers.includes(_id)){
+                await followUser.updateOne({$pull:{followers:_id}});
                 await followingUser.updateOne({$pull:{following:id}});
                 res.status(200).json("User Unfollowed!");
             }else{
