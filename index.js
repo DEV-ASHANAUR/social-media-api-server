@@ -14,15 +14,28 @@ const PORT = process.env.PORT || 8000;
 
 //database connection
 
-mongoose.connect(process.env.MONGO_DB,{
-    useNewUrlParser:true,
-    useUnifiedTopology: true,
-}).then(()=>{
-    app.listen(PORT,()=>{
-        console.log(`Server Listening at ${PORT}`);
-    })
-}).catch((error)=>{
-    console.log(error)
+// mongoose.connect(process.env.MONGO_DB,{
+//     useNewUrlParser:true,
+//     useUnifiedTopology: true,
+// }).then(()=>{
+//     app.listen(PORT,()=>{
+//         console.log(`Server Listening at ${PORT}`);
+//     })
+// }).catch((error)=>{
+//     console.log(error)
+// })
+
+const connect = async () =>{
+    try {
+        await mongoose.connect(process.env.MONGO_DB);
+        console.log("connected to mongoDB");
+    } catch (error) {
+        throw error;
+    }
+}
+
+mongoose.connection.on("disconnected",()=>{
+    console.log("mongodb disconnected");
 })
 
 //middleware
@@ -54,5 +67,11 @@ app.use((err,req,res,next)=>{
         stack: err.stack,
     });
 })
+
+//listen
+app.listen(PORT,()=>{
+    connect();
+    console.log("Connected to Backent.");
+});
 
 
