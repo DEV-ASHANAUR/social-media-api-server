@@ -1,4 +1,5 @@
 import UserModel from "../Models/userModel.js";
+import ChatModel from "../Models/chatModel.js";
 import bcrypt from 'bcrypt';
 import {createError} from '../utils/error.js';
 import jwt from 'jsonwebtoken';
@@ -79,12 +80,17 @@ export const deleteUser = async(req,res,next)=>{
 }
 //follow User
 export const followUser = async(req,res,next)=>{
+    //target user id for follow catch by param
     const id = req.params.id;
+    //current user id
     const {_id} = req.body;
 
     if(id === _id){
         return next(createError(403,"Action Forbidden"));
     }else{
+        const newChat = new ChatModel({
+            members: [_id, id],
+        });
         try {
             const followUser = await UserModel.findById(id);
             const followingUser = await UserModel.findById(_id);
@@ -92,6 +98,12 @@ export const followUser = async(req,res,next)=>{
             if(!followUser.followers.includes(_id)){
                 await followUser.updateOne({$push:{followers:_id}});
                 await followingUser.updateOne({$push:{following:id}});
+                const chat = await ChatModel.findOne({
+                    members: { $all: [_id, id] },
+                });
+                if(!chat){
+                    await newChat.save();
+                }
                 res.status(200).json("User followed!");
             }else{
                 return next(createError(403,"User is Already followed by you"));
